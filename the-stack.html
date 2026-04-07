@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Stack — Team Recs</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --warm-white: #faf7f2;
+    --parchment: #e8dfc8;
+    --bark: #8b6f4e;
+    --deep-bark: #5c4433;
+    --moss: #6b7c5a;
+    --rust: #b85c38;
+    --dusty-rose: #c4937a;
+    --ink: #2c2416;
+    --shadow: rgba(44,36,22,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--cream);
+    font-family: 'Lato', sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* Texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    background: var(--deep-bark);
+    padding: 28px 40px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--rust), var(--dusty-rose), var(--bark));
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.1rem;
+    color: var(--warm-white);
+    letter-spacing: 0.01em;
+  }
+
+  header p {
+    color: var(--parchment);
+    font-size: 0.88rem;
+    font-weight: 300;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .add-btn {
+    background: var(--rust);
+    color: #fff;
+    border: none;
+    padding: 11px 24px;
+    border-radius: 6px;
+    font-family: 'Lato', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.12s;
+  }
+  .add-btn:hover { background: var(--deep-bark); transform: translateY(-1px); }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 28px;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--bark);
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  .chip {
+    background: var(--warm-white);
+    border: 1.5px solid var(--parchment);
+    color: var(--deep-bark);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    font-family: 'Lato', sans-serif;
+    font-weight: 400;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+  .chip:hover, .chip.active {
+    background: var(--bark);
+    color: #fff;
+    border-color: var(--bark);
+  }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 22px;
+  }
+
+  /* Card */
+  .card {
+    background: var(--warm-white);
+    border-radius: 10px;
+    padding: 22px 22px 18px;
+    box-shadow: 0 2px 12px var(--shadow);
+    border: 1px solid var(--parchment);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.18s, box-shadow 0.18s;
+    animation: fadeUp 0.35s ease both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 10px 0 0 10px;
+  }
+  .card[data-type="book"]::before { background: var(--moss); }
+  .card[data-type="show"]::before { background: var(--rust); }
+  .card[data-type="movie"]::before { background: var(--bark); }
+  .card[data-type="podcast"]::before { background: var(--dusty-rose); }
+  .card[data-type="recipe"]::before { background: #c4a94a; }
+
+  .card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px var(--shadow); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card-type {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-block;
+    align-self: flex-start;
+  }
+  [data-type="book"] .card-type { background: var(--moss); }
+  [data-type="show"] .card-type { background: var(--rust); }
+  [data-type="movie"] .card-type { background: var(--bark); }
+  [data-type="podcast"] .card-type { background: var(--dusty-rose); }
+  [data-type="recipe"] .card-type { background: #c4a94a; }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+
+  .card-review {
+    font-size: 0.86rem;
+    color: #5a4e3c;
+    font-style: italic;
+    line-height: 1.55;
+    flex: 1;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--parchment);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+
+  .card-person {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--bark);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .stars {
+    color: var(--rust);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+
+  .card-date {
+    font-size: 0.72rem;
+    color: #a89070;
+  }
+
+  /* Empty state */
+  .empty {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--bark);
+  }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty p { font-size: 0.95rem; }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44,36,22,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .overlay.open { display: flex; }
+
+  .modal {
+    background: var(--warm-white);
+    border-radius: 14px;
+    padding: 36px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(44,36,22,0.25);
+    position: relative;
+    animation: modalIn 0.25s ease;
+    border: 1px solid var(--parchment);
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--deep-bark);
+    margin-bottom: 22px;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 16px; right: 18px;
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--bark);
+    line-height: 1;
+  }
+  .close-btn:hover { color: var(--rust); }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--bark);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--parchment);
+    border-radius: 7px;
+    background: var(--cream);
+    font-family: 'Lato', sans-serif;
+    font-size: 0.92rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--bark);
+  }
+
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  .star-select {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .star-btn {
+    font-size: 1.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: var(--parchment);
+    transition: color 0.1s, transform 0.1s;
+    padding: 0;
+    line-height: 1;
+  }
+  .star-btn.lit { color: var(--rust); }
+  .star-btn:hover { transform: scale(1.2); }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--rust);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Lato', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    margin-top: 8px;
+    transition: background 0.15s;
+  }
+  .submit-btn:hover { background: var(--deep-bark); }
+
+  /* Person filter */
+  .person-chip {
+    background: var(--warm-white);
+    border: 1.5px solid var(--parchment);
+    color: var(--deep-bark);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'Lato', sans-serif;
+    transition: all 0.15s;
+  }
+  .person-chip:hover, .person-chip.active {
+    background: var(--moss);
+    color: #fff;
+    border-color: var(--moss);
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    font-size: 0.78rem;
+    color: var(--bark);
+    align-items: center;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Genre tag */
+  .card-genre {
+    display: inline-block;
+    font-size: 0.7rem;
+    color: var(--bark);
+    background: var(--parchment);
+    border-radius: 10px;
+    padding: 2px 10px;
+    align-self: flex-start;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .card-genre:hover { background: var(--bark); color: #fff; }
+  .card-genre.genre-active { background: var(--bark); color: #fff; }
+
+  /* Autocomplete wrapper */
+  .autocomplete-wrap { position: relative; }
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--warm-white);
+    border: 1.5px solid var(--parchment);
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    z-index: 200;
+    max-height: 160px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 6px 16px var(--shadow);
+  }
+  .autocomplete-list.open { display: block; }
+  .autocomplete-item {
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    cursor: pointer;
+    color: var(--ink);
+    transition: background 0.1s;
+  }
+  .autocomplete-item:hover { background: var(--parchment); }
+
+  @media (max-width: 500px) {
+    header { padding: 20px 18px; }
+    main { padding: 20px 14px 50px; }
+    .modal { padding: 24px 18px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>The Stack</h1>
+      <p>Team Recommendations — Books · Shows · Movies · Podcasts · Recipes</p>
+    </div>
+    <button class="add-btn" onclick="openModal()">+ Add a Rec</button>
+  </div>
+</header>
+
+<main>
+  <div class="filters" id="typeFilters">
+    <span class="filter-label">Filter:</span>
+    <button class="chip active" data-filter="all" onclick="setFilter('all', this)">All</button>
+    <button class="chip" data-filter="book" onclick="setFilter('book', this)">📚 Books</button>
+    <button class="chip" data-filter="show" onclick="setFilter('show', this)">📺 Shows</button>
+    <button class="chip" data-filter="movie" onclick="setFilter('movie', this)">🎬 Movies</button>
+    <button class="chip" data-filter="podcast" onclick="setFilter('podcast', this)">🎙️ Podcasts</button>
+    <button class="chip" data-filter="recipe" onclick="setFilter('recipe', this)">🍳 Recipes</button>
+  </div>
+
+  <div class="legend">
+    <span style="color: var(--bark); font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">By:</span>
+    <div id="personFilters" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="legend" id="genreLegend">
+    <span style="color: var(--bark); font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Genre:</span>
+    <div id="genreFilters" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <h2>Add to The Stack</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category</label>
+        <select id="typeInput">
+          <option value="book">📚 Book</option>
+          <option value="show">📺 Show</option>
+          <option value="movie">🎬 Movie</option>
+          <option value="podcast">🎙️ Podcast</option>
+          <option value="recipe">🍳 Recipe</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="nameInput" placeholder="First name" maxlength="30">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Title / Name</label>
+      <input type="text" id="titleInput" placeholder="What are you recommending?" maxlength="80">
+    </div>
+
+    <div class="form-group">
+      <label>Your pitch <span style="font-weight:300; text-transform:none; letter-spacing:0;">(one or two sentences)</span></label>
+      <textarea id="reviewInput" placeholder="Why should your teammates check this out?"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Genre / Vibe <span style="font-weight:300; text-transform:none; letter-spacing:0;">(optional — type freely or pick a suggestion)</span></label>
+      <div class="autocomplete-wrap">
+        <input type="text" id="genreInput" placeholder="e.g. true crime, comfort watch, weeknight dinner…" maxlength="40" autocomplete="off" oninput="onGenreInput()" onblur="hideAutocomplete()">
+        <div class="autocomplete-list" id="autocompleteList"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Rating</label>
+      <div class="star-select" id="starSelect">
+        <button class="star-btn" data-val="1" onclick="setStars(1)">★</button>
+        <button class="star-btn" data-val="2" onclick="setStars(2)">★</button>
+        <button class="star-btn" data-val="3" onclick="setStars(3)">★</button>
+        <button class="star-btn" data-val="4" onclick="setStars(4)">★</button>
+        <button class="star-btn" data-val="5" onclick="setStars(5)">★</button>
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="submitRec()">Add to The Stack</button>
+  </div>
+</div>
+
+<script>
+  const TYPE_EMOJIS = { book: '📚', show: '📺', movie: '🎬', podcast: '🎙️', recipe: '🍳' };
+  const TYPE_LABELS = { book: 'Book', show: 'Show', movie: 'Movie', podcast: 'Podcast', recipe: 'Recipe' };
+
+  const GENRE_SUGGESTIONS = {
+    book: ['literary fiction', 'historical fiction', 'sci-fi', 'fantasy', 'memoir', 'nonfiction', 'mystery', 'thriller', 'romance', 'short stories', 'graphic novel', 'business', 'self-help', 'poetry'],
+    show: ['drama', 'comedy', 'documentary', 'limited series', 'reality', 'thriller', 'true crime', 'comfort watch', 'binge-worthy', 'sci-fi', 'fantasy', 'period piece'],
+    movie: ['drama', 'comedy', 'action', 'thriller', 'horror', 'sci-fi', 'documentary', 'romance', 'animated', 'foreign film', 'feel-good', 'tearjerker'],
+    podcast: ['true crime', 'news', 'comedy', 'interview', 'storytelling', 'health & wellness', 'business', 'history', 'science', 'culture', 'finance', 'self-improvement'],
+    recipe: ['weeknight dinner', 'weekend project', 'one-pot', 'quick & easy', 'vegetarian', 'crowd pleaser', 'comfort food', 'healthy', 'snack', 'dessert', 'brunch', 'meal prep'],
+  };
+
+  let recs = [
+    { id: 1, type: 'book', title: 'Demon Copperhead', name: 'Aubrey', genre: 'literary fiction', review: 'Barbara Kingsolver doing Dickens in Appalachia. Devastating and brilliant — I thought about it for weeks.', stars: 5, date: 'Apr 2025' },
+    { id: 2, type: 'show', title: 'The Bear', name: 'Jordan', genre: 'drama', review: 'The most stressful 30 minutes of television ever made, in the best way. Season 2 is a masterpiece.', stars: 5, date: 'Mar 2025' },
+    { id: 3, type: 'podcast', title: 'Maintenance Phase', name: 'Riley', genre: 'health & wellness', review: 'Debunks wellness myths with actual research. Every episode makes me rethink something I thought I knew.', stars: 5, date: 'Mar 2025' },
+    { id: 4, type: 'movie', title: 'Past Lives', name: 'Sam', genre: 'romance', review: 'Quiet and devastating. Best film I\'ve seen in years. Bring tissues.', stars: 5, date: 'Feb 2025' },
+    { id: 5, type: 'recipe', title: 'Ottolenghi\'s Roasted Eggplant with Tahini', name: 'Taylor', genre: 'crowd pleaser', review: 'Converted my eggplant-hating partner. Takes 40 min and looks incredibly impressive.', stars: 4, date: 'Feb 2025' },
+    { id: 6, type: 'book', title: 'Tomorrow, and Tomorrow, and Tomorrow', name: 'Morgan', genre: 'literary fiction', review: 'About video games but actually about creativity, friendship, and grief. Couldn\'t put it down.', stars: 5, date: 'Jan 2025' },
+  ];
+
+  let currentFilter = 'all';
+  let currentPerson = 'all';
+  let currentGenre = 'all';
+  let selectedStars = 0;
+  let nextId = recs.length + 1;
+
+  function starsHTML(n) {
+    return '★'.repeat(n) + '☆'.repeat(5 - n);
+  }
+
+  function formatType(t) {
+    return `${TYPE_EMOJIS[t]} ${TYPE_LABELS[t]}`;
+  }
+
+  function getPeople() {
+    return [...new Set(recs.map(r => r.name))];
+  }
+
+  function getGenres() {
+    return [...new Set(recs.map(r => r.genre).filter(Boolean))].sort();
+  }
+
+  function renderPersonFilters() {
+    const div = document.getElementById('personFilters');
+    const people = getPeople();
+    div.innerHTML = `<button class="person-chip ${currentPerson === 'all' ? 'active' : ''}" onclick="setPerson('all', this)">Everyone</button>` +
+      people.map(p => `<button class="person-chip ${currentPerson === p ? 'active' : ''}" onclick="setPerson('${p}', this)">${p}</button>`).join('');
+  }
+
+  function renderGenreFilters() {
+    const div = document.getElementById('genreFilters');
+    const genres = getGenres();
+    if (genres.length === 0) { div.innerHTML = ''; return; }
+    div.innerHTML = genres.map(g =>
+      `<button class="chip ${currentGenre === g ? 'active' : ''}" style="font-size:0.75rem; padding:4px 12px;" onclick="setGenre('${g}', this)">${g}</button>`
+    ).join('');
+  }
+
+  function render() {
+    const grid = document.getElementById('grid');
+    let filtered = recs.filter(r => {
+      const typeMatch = currentFilter === 'all' || r.type === currentFilter;
+      const personMatch = currentPerson === 'all' || r.name === currentPerson;
+      const genreMatch = currentGenre === 'all' || r.genre === currentGenre;
+      return typeMatch && personMatch && genreMatch;
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="empty"><div class="empty-icon">📖</div><p>Nothing here yet — be the first to add!</p></div>`;
+    } else {
+      grid.innerHTML = filtered.map((r, i) => `
+        <div class="card" data-type="${r.type}" style="animation-delay:${i * 0.05}s">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span class="card-type">${formatType(r.type)}</span>
+            ${r.genre ? `<span class="card-genre ${currentGenre === r.genre ? 'genre-active' : ''}" onclick="filterByGenre('${r.genre}')">${r.genre}</span>` : ''}
+          </div>
+          <div class="card-title">${r.title}</div>
+          <div class="card-review">"${r.review}"</div>
+          <div class="card-footer">
+            <span class="card-person">${r.name}</span>
+            <span class="stars">${starsHTML(r.stars)}</span>
+            <span class="card-date">${r.date}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    renderPersonFilters();
+    renderGenreFilters();
+  }
+
+  function setFilter(val, el) {
+    currentFilter = val;
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+
+  function setPerson(val, el) {
+    currentPerson = val;
+    document.querySelectorAll('.person-chip').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+
+  function setGenre(val, el) {
+    currentGenre = currentGenre === val ? 'all' : val;
+    render();
+  }
+
+  function filterByGenre(g) {
+    currentGenre = currentGenre === g ? 'all' : g;
+    render();
+  }
+
+  // Autocomplete
+  function onGenreInput() {
+    const input = document.getElementById('genreInput');
+    const list = document.getElementById('autocompleteList');
+    const type = document.getElementById('typeInput').value;
+    const val = input.value.toLowerCase().trim();
+
+    // Combine type-specific suggestions with genres already used by team
+    const teamGenres = getGenres();
+    const typeSuggestions = GENRE_SUGGESTIONS[type] || [];
+    const allSuggestions = [...new Set([...teamGenres, ...typeSuggestions])];
+
+    const matches = val.length === 0 ? [] : allSuggestions.filter(s => s.toLowerCase().includes(val) && s.toLowerCase() !== val);
+
+    if (matches.length === 0) { list.classList.remove('open'); return; }
+
+    list.innerHTML = matches.slice(0, 6).map(m =>
+      `<div class="autocomplete-item" onmousedown="selectGenre('${m}')">${m}</div>`
+    ).join('');
+    list.classList.add('open');
+  }
+
+  function selectGenre(val) {
+    document.getElementById('genreInput').value = val;
+    document.getElementById('autocompleteList').classList.remove('open');
+  }
+
+  function hideAutocomplete() {
+    setTimeout(() => document.getElementById('autocompleteList').classList.remove('open'), 150);
+  }
+
+  // Also update suggestions when category changes
+  document.getElementById('typeInput')?.addEventListener('change', () => {
+    if (document.getElementById('genreInput').value) onGenreInput();
+  });
+
+  function openModal() {
+    selectedStars = 0;
+    document.getElementById('typeInput').value = 'book';
+    document.getElementById('nameInput').value = '';
+    document.getElementById('titleInput').value = '';
+    document.getElementById('reviewInput').value = '';
+    document.getElementById('genreInput').value = '';
+    document.getElementById('autocompleteList').classList.remove('open');
+    setStars(0);
+    document.getElementById('overlay').classList.add('open');
+    document.getElementById('nameInput').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('overlay')) closeModal();
+  }
+
+  function setStars(n) {
+    selectedStars = n;
+    document.querySelectorAll('.star-btn').forEach(b => {
+      b.classList.toggle('lit', parseInt(b.dataset.val) <= n);
+    });
+  }
+
+  function submitRec() {
+    const type = document.getElementById('typeInput').value;
+    const name = document.getElementById('nameInput').value.trim();
+    const title = document.getElementById('titleInput').value.trim();
+    const review = document.getElementById('reviewInput').value.trim();
+    const genre = document.getElementById('genreInput').value.trim().toLowerCase();
+
+    if (!name || !title || !review || !selectedStars) {
+      alert('Please fill in all fields and select a rating!');
+      return;
+    }
+
+    const now = new Date();
+    const month = now.toLocaleString('default', { month: 'short' });
+    const year = now.getFullYear();
+
+    recs.unshift({ id: nextId++, type, title, name, genre, review, stars: selectedStars, date: `${month} ${year}` });
+    currentFilter = 'all';
+    currentPerson = 'all';
+    currentGenre = 'all';
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+    document.querySelector('[data-filter="all"]').classList.add('active');
+
+    closeModal();
+    render();
+  }
+
+  render();
+</script>
+</body>
+</html>
