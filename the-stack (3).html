@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Stack — Team Recs</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --warm-white: #faf7f2;
+    --parchment: #e8dfc8;
+    --bark: #8b6f4e;
+    --deep-bark: #5c4433;
+    --moss: #6b7c5a;
+    --rust: #b85c38;
+    --dusty-rose: #c4937a;
+    --ink: #2c2416;
+    --shadow: rgba(44,36,22,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); font-family: 'Lato', sans-serif; color: var(--ink); min-height: 100vh; }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+  header { background: var(--deep-bark); padding: 28px 40px 24px; position: relative; overflow: hidden; }
+  header::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--rust), var(--dusty-rose), var(--bark)); }
+  header h1 { font-family: 'Playfair Display', serif; font-size: 2.1rem; color: var(--warm-white); letter-spacing: 0.01em; }
+  header p { color: var(--parchment); font-size: 0.88rem; font-weight: 300; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+  .header-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .add-btn { background: var(--rust); color: #fff; border: none; padding: 11px 24px; border-radius: 6px; font-family: 'Lato', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; cursor: pointer; transition: background 0.18s, transform 0.12s; }
+  .add-btn:hover { background: var(--deep-bark); transform: translateY(-1px); }
+  .add-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px 60px; position: relative; z-index: 1; }
+  .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
+  .filter-label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--bark); font-weight: 700; margin-right: 4px; }
+  .chip { background: var(--warm-white); border: 1.5px solid var(--parchment); color: var(--deep-bark); padding: 6px 16px; border-radius: 20px; font-size: 0.82rem; cursor: pointer; font-family: 'Lato', sans-serif; font-weight: 400; transition: all 0.15s; letter-spacing: 0.03em; }
+  .chip:hover, .chip.active { background: var(--bark); color: #fff; border-color: var(--bark); }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; font-size: 0.78rem; color: var(--bark); align-items: center; min-height: 28px; }
+  .person-chip { background: var(--warm-white); border: 1.5px solid var(--parchment); color: var(--deep-bark); padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; font-family: 'Lato', sans-serif; transition: all 0.15s; }
+  .person-chip:hover, .person-chip.active { background: var(--moss); color: #fff; border-color: var(--moss); }
+  .card-genre { display: inline-block; font-size: 0.7rem; color: var(--bark); background: var(--parchment); border-radius: 10px; padding: 2px 10px; align-self: flex-start; letter-spacing: 0.04em; cursor: pointer; transition: background 0.15s, color 0.15s; }
+  .card-genre:hover, .card-genre.genre-active { background: var(--bark); color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; }
+  .card { background: var(--warm-white); border-radius: 10px; padding: 22px 22px 18px; box-shadow: 0 2px 12px var(--shadow); border: 1px solid var(--parchment); display: flex; flex-direction: column; gap: 10px; transition: transform 0.18s, box-shadow 0.18s; animation: fadeUp 0.35s ease both; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; border-radius: 10px 0 0 10px; }
+  .card[data-type="book"]::before { background: var(--moss); }
+  .card[data-type="show"]::before { background: var(--rust); }
+  .card[data-type="movie"]::before { background: var(--bark); }
+  .card[data-type="podcast"]::before { background: var(--dusty-rose); }
+  .card[data-type="recipe"]::before { background: #c4a94a; }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px var(--shadow); }
+  .delete-btn { position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer; font-size: 0.85rem; color: var(--parchment); transition: color 0.15s; opacity: 0; pointer-events: none; line-height: 1; padding: 2px 6px; border-radius: 4px; }
+  .card:hover .delete-btn { opacity: 1; pointer-events: auto; }
+  .delete-btn:hover { color: var(--rust); background: rgba(184,92,56,0.08); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .card-type { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; color: #fff; padding: 3px 10px; border-radius: 12px; display: inline-block; align-self: flex-start; }
+  [data-type="book"] .card-type { background: var(--moss); }
+  [data-type="show"] .card-type { background: var(--rust); }
+  [data-type="movie"] .card-type { background: var(--bark); }
+  [data-type="podcast"] .card-type { background: var(--dusty-rose); }
+  [data-type="recipe"] .card-type { background: #c4a94a; }
+  .card-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.3; color: var(--ink); }
+  .card-review { font-size: 0.86rem; color: #5a4e3c; font-style: italic; line-height: 1.55; flex: 1; }
+  .card-link { font-size: 0.78rem; color: var(--rust); text-decoration: none; font-weight: 700; letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 4px; }
+  .card-link:hover { text-decoration: underline; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--parchment); padding-top: 10px; margin-top: 4px; }
+  .card-person { font-size: 0.78rem; font-weight: 700; color: var(--bark); letter-spacing: 0.04em; text-transform: uppercase; }
+  .stars { color: var(--rust); font-size: 0.85rem; letter-spacing: 1px; }
+  .card-date { font-size: 0.72rem; color: #a89070; }
+  .empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--bark); }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty p { font-size: 0.95rem; }
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--deep-bark); color: var(--warm-white); padding: 12px 24px; border-radius: 8px; font-size: 0.88rem; font-weight: 700; z-index: 999; transition: transform 0.3s ease; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(44,36,22,0.45); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--warm-white); border-radius: 14px; padding: 36px; max-width: 480px; width: 100%; box-shadow: 0 20px 60px rgba(44,36,22,0.25); position: relative; animation: modalIn 0.25s ease; border: 1px solid var(--parchment); max-height: 90vh; overflow-y: auto; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--deep-bark); margin-bottom: 22px; }
+  .close-btn { position: absolute; top: 16px; right: 18px; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--bark); line-height: 1; }
+  .close-btn:hover { color: var(--rust); }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--bark); font-weight: 700; margin-bottom: 6px; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1.5px solid var(--parchment); border-radius: 7px; background: var(--cream); font-family: 'Lato', sans-serif; font-size: 0.92rem; color: var(--ink); outline: none; transition: border-color 0.15s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--bark); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  
+  .star-select { display: flex; gap: 6px; margin-top: 4px; }
+  .star-btn { font-size: 1.5rem; cursor: pointer; background: none; border: none; color: var(--parchment); transition: color 0.1s, transform 0.1s; padding: 0; line-height: 1; }
+  .star-btn.lit { color: var(--rust); }
+  .star-btn:hover { transform: scale(1.2); }
+  .submit-btn { width: 100%; padding: 13px; background: var(--rust); color: #fff; border: none; border-radius: 8px; font-family: 'Lato', sans-serif; font-size: 1rem; font-weight: 700; cursor: pointer; letter-spacing: 0.04em; margin-top: 8px; transition: background 0.15s; }
+  .submit-btn:hover { background: var(--deep-bark); }
+  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .autocomplete-wrap { position: relative; }
+  .autocomplete-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--warm-white); border: 1.5px solid var(--parchment); border-top: none; border-radius: 0 0 7px 7px; z-index: 200; max-height: 160px; overflow-y: auto; display: none; box-shadow: 0 6px 16px var(--shadow); }
+  .autocomplete-list.open { display: block; }
+  .autocomplete-item { padding: 8px 14px; font-size: 0.88rem; cursor: pointer; color: var(--ink); transition: background 0.1s; }
+  .autocomplete-item:hover { background: var(--parchment); }
+  @media (max-width: 500px) { header { padding: 20px 18px; } main { padding: 20px 14px 50px; } .modal { padding: 24px 18px; } .form-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <h1>The Stack</h1>
+      <p>Team Recommendations — Books · Shows · Movies · Podcasts · Recipes</p>
+    </div>
+    <button class="add-btn" id="addBtn" onclick="openModal()">+ Add a Rec</button>
+  </div>
+</header>
+
+<main>
+  <div class="filters">
+    <span class="filter-label">Filter:</span>
+    <button class="chip active" data-filter="all" onclick="setFilter('all',this)">All</button>
+    <button class="chip" data-filter="book" onclick="setFilter('book',this)">📚 Books</button>
+    <button class="chip" data-filter="show" onclick="setFilter('show',this)">📺 Shows</button>
+    <button class="chip" data-filter="movie" onclick="setFilter('movie',this)">🎬 Movies</button>
+    <button class="chip" data-filter="podcast" onclick="setFilter('podcast',this)">🎙️ Podcasts</button>
+    <button class="chip" data-filter="recipe" onclick="setFilter('recipe',this)">🍳 Recipes</button>
+  </div>
+  <div class="legend">
+    <span class="filter-label">By:</span>
+    <div id="personFilters" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+  </div>
+  <div class="legend">
+    <span class="filter-label" id="genreLabel" style="display:none;">Genre:</span>
+    <div id="genreFilters" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+  </div>
+  <div class="grid" id="grid">
+    <div class="empty"><div class="empty-icon">📖</div><p>Loading The Stack…</p></div>
+  </div>
+</main>
+
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <h2>Add to The Stack</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Category</label>
+        <select id="typeInput" onchange="onTypeChange()">
+          <option value="book">📚 Book</option>
+          <option value="show">📺 Show</option>
+          <option value="movie">🎬 Movie</option>
+          <option value="podcast">🎙️ Podcast</option>
+          <option value="recipe">🍳 Recipe</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Name</label>
+        <input type="text" id="nameInput" placeholder="First name" maxlength="30">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Title / Name</label>
+      <input type="text" id="titleInput" placeholder="What are you recommending?" maxlength="80">
+    </div>
+    <div class="form-group">
+      <label>Your pitch <span style="font-weight:300;text-transform:none;letter-spacing:0;">(one or two sentences)</span></label>
+      <textarea id="reviewInput" placeholder="Why should your teammates check this out?"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Genre / Vibe <span style="font-weight:300;text-transform:none;letter-spacing:0;">(optional)</span></label>
+      <div class="autocomplete-wrap">
+        <input type="text" id="genreInput" placeholder="e.g. true crime, comfort watch, weeknight dinner…" maxlength="40" autocomplete="off" oninput="onGenreInput()" onblur="hideAutocomplete()">
+        <div class="autocomplete-list" id="autocompleteList"></div>
+      </div>
+    </div>
+    <div class="form-group" id="linkGroup" style="display:block!important;">
+      <label>Link <span style="font-weight:300;text-transform:none;letter-spacing:0;">(optional — great for recipes, articles, anything with a URL)</span></label>
+      <input type="url" id="linkInput" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <label>Rating</label>
+      <div class="star-select">
+        <button class="star-btn" data-val="1" onclick="setStars(1)">★</button>
+        <button class="star-btn" data-val="2" onclick="setStars(2)">★</button>
+        <button class="star-btn" data-val="3" onclick="setStars(3)">★</button>
+        <button class="star-btn" data-val="4" onclick="setStars(4)">★</button>
+        <button class="star-btn" data-val="5" onclick="setStars(5)">★</button>
+      </div>
+    </div>
+    <button class="submit-btn" id="submitBtn" onclick="submitRec()">Add to The Stack</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const AT_TOKEN = 'patx8FlU3qzOCObUt.5403d9a39b0bc6638715abe2f271d5256eea282b4d07cb26f3d8282dc8286740';
+  const AT_BASE  = 'appzA7RjZyiHDfctS';
+  const AT_TABLE = 'Recs';
+  const AT_URL   = `https://api.airtable.com/v0/${AT_BASE}/${encodeURIComponent(AT_TABLE)}`;
+  const HEADERS  = { 'Authorization': `Bearer ${AT_TOKEN}`, 'Content-Type': 'application/json' };
+
+  const GENRE_SUGGESTIONS = {
+    book:    ['literary fiction','historical fiction','sci-fi','fantasy','memoir','nonfiction','mystery','thriller','romance','short stories','graphic novel','business','self-help','poetry','mythology'],
+    show:    ['drama','comedy','documentary','limited series','reality','thriller','true crime','comfort watch','binge-worthy','sci-fi','fantasy','period piece','feel-good'],
+    movie:   ['drama','comedy','action','thriller','horror','sci-fi','documentary','romance','animated','foreign film','feel-good','tearjerker','romantic comedy','fantasy'],
+    podcast: ['true crime','news','comedy','interview','storytelling','health & wellness','business','history','science','culture','finance','self-improvement','feel-good'],
+    recipe:  ['weeknight dinner','weekend project','one-pot','quick & easy','vegetarian','crowd pleaser','comfort food','healthy','snack','dessert','brunch','meal prep'],
+  };
+
+  const TYPE_EMOJIS = { book:'📚', show:'📺', movie:'🎬', podcast:'🎙️', recipe:'🍳' };
+  const TYPE_LABELS = { book:'Book', show:'Show', movie:'Movie', podcast:'Podcast', recipe:'Recipe' };
+
+  let recs = [], currentFilter = 'all', currentPerson = 'all', currentGenre = 'all', selectedStars = 0;
+
+  async function fetchRecs() {
+    try {
+      let all = [], offset = '';
+      do {
+        const res  = await fetch(AT_URL + '?sort[0][field]=date&sort[0][direction]=desc' + (offset ? `&offset=${offset}` : ''), { headers: HEADERS });
+        const data = await res.json();
+        if (data.error) throw new Error(data.error.message);
+        all    = all.concat(data.records.map(r => ({ id: r.id, ...r.fields })));
+        offset = data.offset || '';
+      } while (offset);
+      recs = all;
+      render();
+    } catch (e) {
+      document.getElementById('grid').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><p>Couldn't load recs — check Airtable setup.<br><small>${e.message}</small></p></div>`;
+    }
+  }
+
+  async function saveRec(fields) {
+    const res  = await fetch(AT_URL, { method: 'POST', headers: HEADERS, body: JSON.stringify({ fields }) });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data;
+  }
+
+  function starsHTML(n) { return '★'.repeat(n) + '☆'.repeat(5 - n); }
+  function fmt(t) { return `${TYPE_EMOJIS[t]||''} ${TYPE_LABELS[t]||t}`; }
+  function getPeople() { return [...new Set(recs.map(r => r.name))]; }
+  function getGenres() { return [...new Set(recs.map(r => r.genre).filter(Boolean))].sort(); }
+
+  function renderPersonFilters() {
+    document.getElementById('personFilters').innerHTML =
+      `<button class="person-chip ${currentPerson==='all'?'active':''}" onclick="setPerson('all',this)">Everyone</button>` +
+      getPeople().map(p => `<button class="person-chip ${currentPerson===p?'active':''}" onclick="setPerson('${p}',this)">${p}</button>`).join('');
+  }
+
+  function renderGenreFilters() {
+    const genres = getGenres();
+    document.getElementById('genreLabel').style.display = genres.length ? '' : 'none';
+    document.getElementById('genreFilters').innerHTML = genres.map(g =>
+      `<button class="chip ${currentGenre===g?'active':''}" style="font-size:0.75rem;padding:4px 12px;" onclick="setGenre('${g}')">${g}</button>`
+    ).join('');
+  }
+
+  function render() {
+    const filtered = recs.filter(r =>
+      (currentFilter==='all' || r.type===currentFilter) &&
+      (currentPerson==='all' || r.name===currentPerson) &&
+      (currentGenre==='all'  || r.genre===currentGenre)
+    );
+    document.getElementById('grid').innerHTML = filtered.length === 0
+      ? `<div class="empty"><div class="empty-icon">📖</div><p>${recs.length===0?'Be the first to add a rec!':'No recs match this filter.'}</p></div>`
+      : filtered.map((r,i) => `
+          <div class="card" data-type="${r.type}" style="animation-delay:${i*0.05}s">
+            <button class="delete-btn" onclick="deleteRec('${r.id}', event)" title="Delete">✕</button>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span class="card-type">${fmt(r.type)}</span>
+              ${r.genre?`<span class="card-genre ${currentGenre===r.genre?'genre-active':''}" onclick="setGenre('${r.genre}')">${r.genre}</span>`:''}
+            </div>
+            <div class="card-title">${r.title}</div>
+            <div class="card-review">"${r.review}"</div>
+            ${r.link?`<a class="card-link" href="${r.link}" target="_blank" rel="noopener">🔗 View Link</a>`:''}
+            <div class="card-footer">
+              <span class="card-person">${r.name}</span>
+              <span class="stars">${starsHTML(r.stars)}</span>
+              <span class="card-date">${r.date}</span>
+            </div>
+          </div>`).join('');
+    renderPersonFilters();
+    renderGenreFilters();
+  }
+
+  async function deleteRec(id, e) {
+    e.stopPropagation();
+    if (!confirm('Delete this rec?')) return;
+    try {
+      const res = await fetch(AT_URL + '/' + id, { method: 'DELETE', headers: HEADERS });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      showToast('Rec deleted.');
+      await fetchRecs();
+    } catch(err) {
+      showToast('Could not delete — try again.');
+    }
+  }
+
+  function setFilter(val, el) {
+    currentFilter = val;
+    document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+  function setPerson(val, el) {
+    currentPerson = val;
+    document.querySelectorAll('.person-chip').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    render();
+  }
+  function setGenre(val) { currentGenre = currentGenre===val?'all':val; render(); }
+
+  function onTypeChange() {
+    document.getElementById('linkGroup').style.display = document.getElementById('typeInput').value==='recipe'?'':'none';
+    if (document.getElementById('genreInput').value) onGenreInput();
+  }
+
+  function openModal() {
+    selectedStars = 0;
+    ['nameInput','titleInput','reviewInput','genreInput','linkInput'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('typeInput').value = 'book';
+    document.getElementById('linkGroup').style.display = 'none';
+    document.getElementById('autocompleteList').classList.remove('open');
+    setStars(0);
+    document.getElementById('overlay').classList.add('open');
+    setTimeout(() => document.getElementById('nameInput').focus(), 50);
+  }
+  function closeModal() { document.getElementById('overlay').classList.remove('open'); }
+  function handleOverlayClick(e) { if (e.target===document.getElementById('overlay')) closeModal(); }
+
+  function setStars(n) {
+    selectedStars = n;
+    document.querySelectorAll('.star-btn').forEach(b => b.classList.toggle('lit', parseInt(b.dataset.val)<=n));
+  }
+
+  async function submitRec() {
+    const type   = document.getElementById('typeInput').value;
+    const name   = document.getElementById('nameInput').value.trim();
+    const title  = document.getElementById('titleInput').value.trim();
+    const review = document.getElementById('reviewInput').value.trim();
+    const genre  = document.getElementById('genreInput').value.trim().toLowerCase();
+    const link   = document.getElementById('linkInput').value.trim();
+
+    if (!name||!title||!review||!selectedStars) { showToast('Please fill in all fields and select a rating!'); return; }
+
+    const now    = new Date();
+    const date   = now.toLocaleString('default',{month:'short'})+' '+now.getFullYear();
+    const fields = { type, name, title, review, stars: selectedStars, date };
+    if (genre) fields.genre = genre;
+    if (link) fields.link = link;
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await saveRec(fields);
+      closeModal();
+      showToast('Added to The Stack! 🎉');
+      await fetchRecs();
+    } catch(e) {
+      showToast("Couldn't save — try again.");
+      console.error(e);
+    } finally {
+      btn.disabled = false; btn.textContent = 'Add to The Stack';
+    }
+  }
+
+  function onGenreInput() {
+    const val  = document.getElementById('genreInput').value.toLowerCase().trim();
+    const type = document.getElementById('typeInput').value;
+    const list = document.getElementById('autocompleteList');
+    const all  = [...new Set([...getGenres(),...(GENRE_SUGGESTIONS[type]||[])])];
+    const hits = val.length===0?[]:all.filter(s=>s.includes(val)&&s!==val);
+    if (!hits.length) { list.classList.remove('open'); return; }
+    list.innerHTML = hits.slice(0,6).map(m=>`<div class="autocomplete-item" onmousedown="selectGenre('${m}')">${m}</div>`).join('');
+    list.classList.add('open');
+  }
+  function selectGenre(val) { document.getElementById('genreInput').value=val; document.getElementById('autocompleteList').classList.remove('open'); }
+  function hideAutocomplete() { setTimeout(()=>document.getElementById('autocompleteList').classList.remove('open'),150); }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),3000);
+  }
+
+  fetchRecs();
+</script>
+</body>
+</html>
